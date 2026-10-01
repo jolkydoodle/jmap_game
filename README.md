@@ -1,18 +1,37 @@
-# World Quiz
+# Map Game
 
-A simple browser game for learning every country and flag in the world.
+An offline desktop game for learning the countries of the world and where they are on the map,
+with a spaced-repetition memory algorithm (FSRS) deciding what to practise. Work in progress:
+see [SPEC.md](SPEC.md) for the plan and milestones.
 
-[World Quizz](https://world-quizz.vercel.app/)
+Forked from [dianabali/world-quizz](https://github.com/dianabali/world-quizz) (MIT), the
+[World Quizz](https://world-quizz.vercel.app/) browser game by dianabali. The upstream quiz is
+still playable as-is; the sections below describe it.
+
+## Running it (current state)
+
+The local server and app window are not built yet (Milestone 1). For now, serve the `web/`
+folder with any static server, for example:
+
+```
+python -m http.server --directory web
+```
+
+then open <http://localhost:8000/>. The page uses ES modules, so it must be served over HTTP;
+opening `index.html` directly from disk won't work.
+
+Development: `pip install -r requirements-dev.txt`, then `python -m pytest`.
 
 ## Table of contents
 
-1. [Features](#features)
-2. [Game modes](#game-modes)
-3. [Project structure](#project-structure)
-4. [How it works](#how-it-works)
-5. [Customizing](#customizing)
-6. [Updating the data](#updating-the-data)
-7. [Credits and licenses](#credits-and-licenses)
+1. [Running it](#running-it-current-state)
+2. [Features](#features)
+3. [Game modes](#game-modes)
+4. [Project structure](#project-structure)
+5. [How it works](#how-it-works)
+6. [Customizing](#customizing)
+7. [Updating the data](#updating-the-data)
+8. [Credits and licenses](#credits-and-licenses)
 
 ## Features
 
@@ -24,7 +43,7 @@ A simple browser game for learning every country and flag in the world.
 - **Zoomable map:** scroll or pinch to zoom and drag to pan.
 - **Ring marker:** a ring surrounds the target country so tiny countries and islands are easy to find.
 - **Results screen:** shows your score and the list of countries you missed.
-- **Fully self-contained:** the map data, country list, flags and libraries are all in the project. The site makes no network requests except for the Google Fonts stylesheet.
+- **Fully self-contained:** the map data, country list, flags and libraries are all in the project. The app makes no network requests.
 
 ## Game modes
 
@@ -64,20 +83,34 @@ North America includes Central America and the Caribbean. Antarctica has no coun
 ## Project structure
 
 ```
-world-quiz/
-├── index.html            Page structure (all screens)
+jmap_game/
+├── SPEC.md               Build spec and milestones
+├── CLAUDE.md             Conventions for Claude Code
 ├── README.md             This file
-├── css/
-│   └── style.css         All styling and layout
-├── js/
-│   └── app.js            Game logic
-├── data/
-│   ├── countries.js      Country list: names, flag codes, continents, coordinates
-│   └── world.js          World map shapes (TopoJSON)
-├── flags/                One SVG flag per country, e.g. flags/de.svg
-└── vendor/
-    ├── d3.min.js         d3 v7.9.0: map drawing, zoom, shuffle
-    └── topojson-client.min.js   topojson-client v3.1.0: converts map data
+├── requirements.txt      Runtime dependencies (fsrs, pywebview)
+├── requirements-dev.txt  Dev/build dependencies (pytest, pyinstaller)
+├── run.py                Entry point (Milestone 1; stub for now)
+├── server/               Local Python server (stubs for now) and tests/
+├── tools/                Data build script and raw data (Milestone 2)
+└── web/                  Everything the browser loads
+    ├── index.html        Page structure (all screens)
+    ├── css/
+    │   └── style.css     All styling and layout
+    ├── js/
+    │   ├── main.js       Entry point: loads data, draws the map, home screen
+    │   ├── ui.js         Small DOM helpers: $, screen switching, active tab
+    │   ├── map.js        Map drawing, zoom/pan, highlight, ring, continent views
+    │   ├── answer.js     normalize() for typed answers
+    │   ├── api.js, distractors.js, geo.js   Stubs for later milestones
+    │   └── modes/
+    │       └── classic.js   The original Country / Flag / Continent rounds
+    ├── data/
+    │   ├── countries.js  Country list: names, flag codes, continents, coordinates
+    │   └── world.js      World map shapes (TopoJSON)
+    ├── flags/            One SVG flag per country, e.g. flags/de.svg
+    └── vendor/
+        ├── d3.min.js     d3 v7.9.0: map drawing, zoom, shuffle
+        └── topojson-client.min.js   topojson-client v3.1.0: converts map data
 ```
 
 ## How it works
@@ -89,9 +122,9 @@ world-quiz/
 1. `vendor/d3.min.js` and `vendor/topojson-client.min.js`.
 2. `data/countries.js`, which defines `window.COUNTRIES`.
 3. `data/world.js`, which defines `window.WORLD`.
-4. `js/app.js`, which uses all of the above.
+4. `js/main.js` (an ES module), which uses all of the above and imports the other modules.
 
-On start, `app.js` converts the TopoJSON into map shapes and links each country in the list to its shape.
+On start, `main.js` converts the TopoJSON into map shapes and links each country in the list to its shape.
 
 ### Country records
 
@@ -110,7 +143,7 @@ Each entry in `data/countries.js` looks like this:
 
 ### Linking a country to its map shape
 
-The map file identifies shapes by numeric id. `app.js` matches on `id` first, and if that fails it matches by name. The name fallback is needed for Kosovo, which has no numeric id on the map. A country with no shape at all (Tuvalu) still works: it is shown as a ring marker only.
+The map file identifies shapes by numeric id. `main.js` matches on `id` first, and if that fails it matches by name. The name fallback is needed for Kosovo, which has no numeric id on the map. A country with no shape at all (Tuvalu) still works: it is shown as a ring marker only.
 
 ### Random order
 
@@ -138,13 +171,13 @@ Matching is exact after normalizing. There is no fuzzy matching, so a typo count
 - The highlighted country gets the `hl` CSS class and is moved to the front.
 - The ring is a circle at the country's latitude and longitude. Its radius and stroke are divided by the zoom level so it stays the same size on screen.
 - Zoom and pan use `d3.zoom` (1x to 40x, restricted to the map area).
-- In continent mode, each continent has a geographic bounding box (`CONTINENT_BOX` in `app.js`) that is converted into a zoom transform.
+- In continent mode, each continent has a geographic bounding box (`CONTINENT_BOX` in `map.js`) that is converted into a zoom transform.
 
 ## Customizing
 
 ### Colours
 
-All colours are CSS variables at the top of `css/style.css`. There is one block for the light theme and one for dark mode (`prefers-color-scheme: dark`).
+All colours are CSS variables at the top of `web/css/style.css`. There is one block for the light theme and one for dark mode (`prefers-color-scheme: dark`).
 
 | Variable | Used for |
 | --- | --- |
@@ -161,11 +194,11 @@ All colours are CSS variables at the top of `css/style.css`. There is one block 
 
 ### Fonts
 
-The headings use Bricolage Grotesque and the body uses Inter, loaded from Google Fonts in `index.html`. If the stylesheet cannot load, the game falls back to the system font, so nothing breaks. To go fully offline, remove the `<link>` to Google Fonts.
+The app uses the operating system's own fonts (a system font stack in `--font-body` and `--font-head` at the top of `web/css/style.css`), so it needs no network access. Upstream loaded Bricolage Grotesque and Inter from Google Fonts; that link was removed to keep the app fully offline.
 
 ### Continent view boxes
 
-If a zoomed continent view feels off, adjust its box in `CONTINENT_BOX` in `js/app.js`. The format is `[west, south, east, north]` in degrees.
+If a zoomed continent view feels off, adjust its box in `CONTINENT_BOX` in `web/js/map.js`. The format is `[west, south, east, north]` in degrees.
 
 ## Updating the data
 
@@ -173,11 +206,11 @@ The bundled files were generated from these npm packages:
 
 | Package | Version | Provides |
 | --- | --- | --- |
-| `world-atlas` | 2.0.2 | `countries-50m.json`, copied to `data/world.js` |
+| `world-atlas` | 2.0.2 | `countries-50m.json`, copied to `web/data/world.js` |
 | `world-countries` | 5.1.0 | names, alternative spellings, codes, region, coordinates |
-| `flag-icons` | 7.5.0 | `flags/4x3/*.svg`, copied to `flags/` |
+| `flag-icons` | 7.5.0 | `flags/4x3/*.svg`, copied to `web/flags/` |
 
-`data/countries.js` was produced from `world-countries` with this logic:
+`web/data/countries.js` was produced from `world-countries` with this logic:
 
 - Keep countries where `independent` is true, plus Palestine (`PS`) and Kosovo (`XK`).
 - `code` is `cca2` in lowercase, and `id` is `ccn3`.
@@ -186,14 +219,15 @@ The bundled files were generated from these npm packages:
 - `ll` is `latlng`.
 - `continent` is the `region` field, except that the Americas are split into **South America** (subregion `South America`) and **North America** (everything else).
 
-Then each country's flag is copied from `flag-icons/flags/4x3/<code>.svg` into `flags/`.
+Then each country's flag is copied from `flag-icons/flags/4x3/<code>.svg` into `web/flags/`.
 
-`data/world.js` is `countries-50m.json` wrapped as `window.WORLD = { ... };`. The 50m resolution is used because the lower-resolution files leave out many small countries.
+`web/data/world.js` is `countries-50m.json` wrapped as `window.WORLD = { ... };`. The 50m resolution is used because the lower-resolution files leave out many small countries.
 
 ## Credits and licenses
 
+- **Original app:** [world-quizz](https://github.com/dianabali/world-quizz) by dianabali (MIT). This project is a fork of it.
 - **Map shapes:** [world-atlas](https://github.com/topojson/world-atlas) (ISC), built from [Natural Earth](https://www.naturalearthdata.com/) data, which is in the public domain.
 - **Country data:** [world-countries](https://github.com/mledoze/countries), licensed under the [Open Database License (ODbL) 1.0](https://opendatacommons.org/licenses/odbl/1.0/). If you redistribute the data, keep the attribution.
 - **Flags:** [flag-icons](https://github.com/lipis/flag-icons) (MIT).
 - **Libraries:** [d3](https://d3js.org/) (ISC) and [topojson-client](https://github.com/topojson/topojson-client) (ISC).
-- **Fonts:** [Bricolage Grotesque](https://fonts.google.com/specimen/Bricolage+Grotesque) and [Inter](https://fonts.google.com/specimen/Inter), both under the SIL Open Font License, served by Google Fonts.
+- **Fonts:** none bundled; the app uses system fonts. (Upstream used [Bricolage Grotesque](https://fonts.google.com/specimen/Bricolage+Grotesque) and [Inter](https://fonts.google.com/specimen/Inter) from Google Fonts, both SIL Open Font License.)

@@ -1,0 +1,2 @@
+fsrs==6.3.2
+pywebview==6.2.1
