@@ -23,6 +23,7 @@ Forked from dianabali/world-quizz (MIT); keep the upstream credit and "forked fr
 - Practice modes never change the FSRS schedule.
 
 ## Commands
+- Setup: `python -m venv .venv` then `.venv/Scripts/python -m pip install -r requirements-dev.txt` (Windows path)
 - Tests: `python -m pytest`
-- Serve the frontend alone: `python -m http.server --directory web`
-- App (from Milestone 1): `python run.py` / `--browser` / `--debug` / `--db PATH`
+- App: `python run.py` (window) / `--browser` / `--debug` / `--db PATH`
+- New API routes go in `ROUTES` in `server/app.py`; schema changes are a new entry appended to `db.MIGRATIONS`.

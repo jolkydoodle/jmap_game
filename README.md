@@ -10,15 +10,29 @@ still playable as-is; the sections below describe it.
 
 ## Running it (current state)
 
-The local server and app window are not built yet (Milestone 1). For now, serve the `web/`
-folder with any static server, for example:
+Needs Python 3.11 or newer.
 
 ```
-python -m http.server --directory web
+pip install -r requirements.txt
+python run.py              # opens the game in its own window
+python run.py --browser    # opens it in your default web browser instead (for development)
+python run.py --debug      # app window with the web inspector enabled
+python run.py --db PATH    # use a different progress database file
 ```
 
-then open <http://localhost:8000/>. The page uses ES modules, so it must be served over HTTP;
-opening `index.html` directly from disk won't work.
+`run.py` starts a small local server on `127.0.0.1` (port 8765, or the next free one) and waits
+until it answers before opening the window. Closing the window quits the app; in `--browser` mode,
+press Ctrl+C to stop.
+
+Progress is stored in `progress.db` next to `run.py` (created on first run, not committed).
+
+The app window uses the operating system's built-in web engine through
+[pywebview](https://pywebview.flowrl.com/): Edge WebView2 on Windows 10/11 (preinstalled) and
+WebKit on macOS. On Linux, pywebview needs a GTK or Qt backend installed; see its documentation.
+Linux isn't a supported target, but `--browser` works anywhere.
+
+The page uses ES modules, so it must be served over HTTP; opening `web/index.html` directly from
+disk won't work.
 
 Development: `pip install -r requirements-dev.txt`, then `python -m pytest`.
 
@@ -89,8 +103,15 @@ jmap_game/
 ├── README.md             This file
 ├── requirements.txt      Runtime dependencies (fsrs, pywebview)
 ├── requirements-dev.txt  Dev/build dependencies (pytest, pyinstaller)
-├── run.py                Entry point (Milestone 1; stub for now)
-├── server/               Local Python server (stubs for now) and tests/
+├── run.py                Entry point: starts the server, opens the window or browser
+├── server/
+│   ├── app.py            HTTP server: static files from web/ plus /api routes
+│   ├── db.py             SQLite schema and migrations
+│   ├── settings.py       Settings defaults, validation, load/save
+│   ├── paths.py          Where web/ and progress.db live (source vs. packaged)
+│   ├── desktop.py        pywebview app window
+│   ├── scheduling.py     FSRS scheduling (Milestone 3; stub for now)
+│   └── tests/            pytest suite
 ├── tools/                Data build script and raw data (Milestone 2)
 └── web/                  Everything the browser loads
     ├── index.html        Page structure (all screens)

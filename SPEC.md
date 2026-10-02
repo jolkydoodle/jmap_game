@@ -30,7 +30,7 @@ A fully offline, locally run desktop game for learning the countries of the worl
 | Offline | Remove the Google Fonts `<link>`; use a system font stack |
 | Memory algorithm | FSRS, scheduled server-side with py-fsrs |
 | Unit of memory | A **card** = (country, card kind). Each has its own schedule |
-| Game modes | All nine in Section 5 |
+| Game modes | All nine in Section 5, plus Quick round (5.11, upstream's original rounds) |
 | App window | Native window via pywebview (default); `--browser` flag for development |
 | Packaging | Double-clickable app via PyInstaller, as the final milestone |
 
@@ -68,12 +68,14 @@ jmap_game/
 │   ├── css/style.css
 │   ├── js/
 │   │   ├── main.js          screen routing
+│   │   ├── ui.js            small DOM helpers: $, screen switching, active tab
 │   │   ├── api.js           fetch wrappers for /api
 │   │   ├── map.js           shared map: draw, zoom/pan, highlight, ring, fit-to-country
 │   │   ├── answer.js        normalize(), matching, typo tolerance
 │   │   ├── distractors.js   smart multiple-choice options
 │   │   ├── geo.js           distances, centroids, silhouette part filtering
 │   │   └── modes/           one file per mode (review.js, identify.js, locate.js, ...)
+│   │       └── classic.js   upstream's original rounds, kept as Quick round (5.11)
 │   ├── data/                countries.js, world.js
 │   ├── flags/
 │   └── vendor/              d3, topojson-client
@@ -213,6 +215,10 @@ There are two families:
 #### 5.10 Mix-up drill
 - Lists the user's most frequent confusion pairs (Section 7).
 - Drill: alternating Identify-style questions between the two countries in a pair, shown side by side on the map after each answer so the difference sticks.
+
+#### 5.11 Quick round
+- Upstream world-quizz's original rounds, kept as-is in `modes/classic.js`: Country (highlighted map) or Flag, for the world or one continent. Every country in scope is asked once, in a fresh random order, with typed answers and a results screen listing misses.
+- Unscheduled like the other practice modes: it never changes the FSRS schedule. (Logging its attempts and mix-ups can be added with the other practice modes in M7.)
 
 ### Daily review (the main screen)
 
